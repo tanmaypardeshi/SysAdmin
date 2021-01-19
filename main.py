@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from scripts import services
 from scripts import processes
+from scripts import ports
 
 
 app = FastAPI()
@@ -51,6 +52,14 @@ def operate_on_service(item : Item):
 @app.get("/api/processes/")
 def get_processses():
     res = processes.get_process()
+    return res
+
+
+# Get ports
+
+@app.get("/api/ports/")
+def get_ports(filter: Optional[str] = None):
+    res = ports.get_data(filter)
     return res
 
 if __name__ == "__main__":
