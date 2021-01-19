@@ -10,21 +10,33 @@ def get_running_services(filter, operation):
             arr.append({
                 "name":service.Name,
                 "description":service.Caption,
-                "status": str(service.State).upper(),
+                "state": str(service.State).upper(),
+                "pathName": service.PathName,
+                "startMode": service.StartMode,
+                "status": service.Status,
+                "systemName": service.SystemName
             })
         elif filter == "running":
             if service.state == 'Running':
                 arr.append({
                     "name":service.Name,
                     "description":service.Caption,
-                    "status": str(service.State).upper(),
+                    "state": str(service.State).upper(),
+                    "pathName": service.PathName,
+                    "startMode": service.StartMode,
+                    "status": service.Status,
+                    "systemName": service.SystemName
                 })
         elif filter == 'stopped':
             if service.state == 'Stopped':
                     arr.append({
                     "name":service.Name,
                     "description":service.Caption,
-                    "status": str(service.State).upper(),
+                    "state": str(service.State).upper(),
+                    "pathName": service.PathName,
+                    "startMode": service.StartMode,
+                    "status": service.Status,
+                    "systemName": service.SystemName
                 })
     return arr
 
@@ -39,7 +51,11 @@ def stop_start_service(item):
             return {
                 "name": w32_svc.Name,
                 "description": w32_svc.Caption,
-                "status": str(w32_svc.State).upper()
+                "state": str(w32_svc.State).upper(),
+                "pathName": w32_svc.PathName,
+                "startMode": w32_svc.StartMode,
+                "status": w32_svc.Status,
+                "systemName": w32_svc.SystemName
             }
         else:
             action = str(action).upper()
