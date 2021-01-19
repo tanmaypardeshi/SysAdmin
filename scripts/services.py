@@ -33,7 +33,7 @@ def stop_start_service(item):
     computer = wmi.WMI()
     try:
         name = item.name
-        action = item.action
+        action = str(item.action).upper()
         w32_svc = computer.Win32_Service(Name=name)[0]
         if action == None:
             return {
@@ -42,6 +42,7 @@ def stop_start_service(item):
                 "status": str(w32_svc.State).upper()
             }
         else:
+            action = str(action).upper()
             if action == "STOP":
                 response = w32_svc.StopService()[0]
                 return {"status": f'Stop Service responded with status code: {response} on {name}'}
