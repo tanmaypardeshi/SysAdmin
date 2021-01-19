@@ -14,10 +14,17 @@ from scripts import ports
 
 app = FastAPI()
 
-# Class for action starting and stopping
-class Item(BaseModel):
+# Class for service
+
+class Service(BaseModel):
     name: str
-    action: Optional[str]
+    action: Optional[str] = None
+
+# Class for process
+
+class Process(BaseModel):
+    pid : int
+    action: Optional[str] = None
 
 # Run as administrator on startup
 
@@ -43,8 +50,8 @@ def get_services(filter: Optional[str] = None, operation : Optional[str] = None)
 # Start or stop a particular service
 
 @app.post("/api/service/")
-def operate_on_service(item : Item):
-    res = services.stop_start_service(item)
+def operate_on_service(service : Service):
+    res = services.stop_start_service(service)
     return res
 
 # Get all processes
@@ -54,11 +61,17 @@ def get_processses():
     res = processes.get_process()
     return res
 
+# Stop a running process
+
+@app.post("/api/process/")
+def stop_processes(process : Process):
+    res = processes.stop_or_get_process(process)
+    return res
 
 # Get ports
 
 @app.get("/api/ports/")
-def get_ports(filter: Optional[str] = None):
+def get_ports(filter: str):
     res = ports.get_data(filter)
     return res
 

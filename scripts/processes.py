@@ -28,6 +28,29 @@ def get_process():
             "executablePath": str(process.ExecutablePath),
             "memory": str(get_size(int(process.WorkingSetSize))),
             "creationTime": str(creationTime),
-            "stopping": False,
         })
     return arr
+
+def stop_or_get_process(process):
+    pythoncom.CoInitialize()
+    computer = wmi.WMI()
+    pid = process.pid
+    action = process.action
+    try:
+        if action == None:
+            response = computer.Win32_Process(PorcessId=pid)
+            date_time_str = wmi.to_time(response.CreationDate)
+            creationTime = str("{:0>2d}".format(int(date_time_str[2])))+"/"+str("{:0>2d}".format(int(date_time_str[1])))+"/"+str(date_time_str[0])+" "+str(
+                "{:0>2d}".format(int(date_time_str[3])))+":"+str("{:0>2d}".format(int(date_time_str[4])))+":"+str("{:0>2d}".format(int(date_time_str[5])))
+            return {
+                "name": str(process.Name),
+                "processId": str(process.ProcessId),
+                "executablePath": str(process.ExecutablePath),
+                "memory": str(get_size(int(process.WorkingSetSize))),
+                "creationTime": str(creationTime),
+            }
+    except Exception as e:
+        return {"error": str(e)}
+    else:
+        pass
+    return None
