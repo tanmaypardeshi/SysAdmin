@@ -38,15 +38,15 @@ def stop_or_get_process(process):
     action = process.action
     try:
         if action == None:
-            response = computer.Win32_Process(PorcessId=pid)
+            response = computer.Win32_Process(ProcessId=pid)[0]
             date_time_str = wmi.to_time(response.CreationDate)
             creationTime = str("{:0>2d}".format(int(date_time_str[2])))+"/"+str("{:0>2d}".format(int(date_time_str[1])))+"/"+str(date_time_str[0])+" "+str(
                 "{:0>2d}".format(int(date_time_str[3])))+":"+str("{:0>2d}".format(int(date_time_str[4])))+":"+str("{:0>2d}".format(int(date_time_str[5])))
             return {
-                "name": str(process.Name),
-                "processId": str(process.ProcessId),
-                "executablePath": str(process.ExecutablePath),
-                "memory": str(get_size(int(process.WorkingSetSize))),
+                "name": str(response.Name),
+                "processId": str(response.ProcessId),
+                "executablePath": str(response.ExecutablePath),
+                "memory": str(get_size(int(response.WorkingSetSize))),
                 "creationTime": str(creationTime),
             }
     except Exception as e:
