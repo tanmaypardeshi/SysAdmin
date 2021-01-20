@@ -11,6 +11,12 @@ from scripts import services
 from scripts import processes
 from scripts import ports
 
+from pyngrok import ngrok
+import pyperclip
+
+if not ctypes.windll.shell32.IsUserAnAdmin():
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+    sys.exit(0)
 
 app = FastAPI()
 
@@ -19,6 +25,7 @@ app = FastAPI()
 class Service(BaseModel):
     name: str
     action: Optional[str] = None
+    args: Optional[list] = None
 
 # Class for process
 
@@ -28,12 +35,12 @@ class Process(BaseModel):
 
 # Run as administrator on startup
 
-@app.on_event('startup')
-async def startup_event():
-    if not ctypes.windll.shell32.IsUserAnAdmin():
-        ctypes.windll.shell32.ShellExecuteW(
-        None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-
+# @app.on_event('startup')
+# def startup_event():
+#     url = ngrok.connect(8000).public_url
+#     pyperclip.copy(url)
+#     user32 = ctypes.windll.user32
+#     user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
 # Home route
 
 @app.get("/")
