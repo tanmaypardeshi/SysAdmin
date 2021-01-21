@@ -13,7 +13,9 @@ pyngrok==5.0.1
 pyperclip==1.8.1
 pywin32==300
 PyYAML==5.4
+smtp==0.1.0
 starlette==0.13.6
+stua==0.2
 typing-extensions==3.7.4.3
 uvicorn==0.13.3
 WMI==1.5.1

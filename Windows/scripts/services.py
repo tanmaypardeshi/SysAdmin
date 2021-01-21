@@ -2,57 +2,58 @@ import wmi
 import pythoncom
 
 Win32_Service_Keys = [
-  'AcceptPause',
-  'AcceptStop',
-  'Caption',
-  'CheckPoint',
-  'CreationClassName',
-  'DelayedAutoStart',
-  'Description',
-  'DesktopInteract',
-  'DisplayName',
-  'ErrorControl',
-  'ExitCode',
-  'InstallDate',
-  'Name',
-  'PathName',
-  'ProcessId',
-  'ServiceSpecificExitCode',
-  'ServiceType',
-  'Started',
-  'StartMode',
-  'StartName',
-  'State',
-  'Status',
-  'SystemCreationClassName',
-  'SystemName',
-  'TagId',
-  'WaitHint'
+    'AcceptPause',
+    'AcceptStop',
+    'Caption',
+    'CheckPoint',
+    'CreationClassName',
+    'DelayedAutoStart',
+    'Description',
+    'DesktopInteract',
+    'DisplayName',
+    'ErrorControl',
+    'ExitCode',
+    'InstallDate',
+    'Name',
+    'PathName',
+    'ProcessId',
+    'ServiceSpecificExitCode',
+    'ServiceType',
+    'Started',
+    'StartMode',
+    'StartName',
+    'State',
+    'Status',
+    'SystemCreationClassName',
+    'SystemName',
+    'TagId',
+    'WaitHint'
 ]
 
 Win32_Service_Actions = [
-    'StartService', 
-    'StopService', 
-    'PauseService', 
-    'ResumeService', 
-    'InterrogateService', 
-    'UserControlService', 
-    'Create', 
-    'Change', 
-    'ChangeStartMode', 
-    'Delete', 
-    'GetSecurityDescriptor', 
+    'StartService',
+    'StopService',
+    'PauseService',
+    'ResumeService',
+    'InterrogateService',
+    'UserControlService',
+    'Create',
+    'Change',
+    'ChangeStartMode',
+    'Delete',
+    'GetSecurityDescriptor',
     'SetSecurityDescriptor'
 ]
+
 
 def get_running_services(filter, operation):
     pythoncom.CoInitialize()
     computer = wmi.WMI()
-    arr=[]
+    arr = []
     service_args = {}
     properties = ["Caption", "State", "ProcessId"]
     if filter != None:
-        service_args = { "State": filter }
+        service_args = {"State": filter}
 
     for service in computer.Win32_Service(properties, **service_args):
         svc_obj = {}
@@ -60,6 +61,7 @@ def get_running_services(filter, operation):
             svc_obj[k] = getattr(service, k)
         arr.append(svc_obj)
     return arr
+
 
 def stop_start_service(item):
     pythoncom.CoInitialize()
@@ -80,6 +82,6 @@ def stop_start_service(item):
             if item.args and isinstance(item.args, list):
                 args = item.args
             response = getattr(w32_svc, action)(*args)[0]
-            return { "status": f'{action} responded with status code: {response} on {name}'}
+            return {"status": f'{action} responded with status code: {response} on {name}'}
     except Exception as e:
-        return { "error": str(e) }
+        return {"error": str(e)}
