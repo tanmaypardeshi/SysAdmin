@@ -1,103 +1,92 @@
-import wmi
 import sys
 import ctypes
 import uvicorn
-import pythoncom
 from fastapi import FastAPI, HTTPException
 from typing import Optional
 from pydantic import BaseModel
 
-from scripts import services
-from scripts import processes
-from scripts import ports
+from scripts import wmi_template
+from scripts import win32_template
+from scripts import psutil_template
+
 
 from pyngrok import ngrok
 import pyperclip
 import smtplib
 
+
+# Run as administrator on startup
 if not ctypes.windll.shell32.IsUserAnAdmin():
-    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+    ctypes.windll.shell32.ShellExecuteW(
+        None, "runas", sys.executable, " ".join(sys.argv), None, 1)
     sys.exit(0)
+
 
 app = FastAPI()
 
 
-# Class for service
-
-class Service(BaseModel):
-    name: str
-    action: Optional[str] = None
-    args: Optional[list] = None
-
-
-# Class for process
-
-class Process(BaseModel):
-    pid: int
-    action: Optional[str] = None
-
-
-# Run as administrator on startup
-
-@app.on_event('startup')
-async def startup_event():
-    url = ngrok.connect(8000).public_url
-    pyperclip.copy(url)
-    user32 = ctypes.windll.user32
-    user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-        server.login('alumni.vit18@gmail.com', 'Root1234')
-        message = 'Subject: The ngrok url\n\nHello,\nThe url is {}\nThank you'.format(url)
-        for email in ['newalkarpranjal2410.pn@gmail.com', 'kaustubhodak1@gmail.com', 'tanmaypardeshi@gmail.com']:
-            server.sendmail('alumni.vit18@gmail.com', email, message)
-            user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
-        server.close()
+# @app.on_event('startup')
+# async def startup_event():
+#     url = ngrok.connect(8000).public_url
+#     pyperclip.copy(url)
+#     user32 = ctypes.windll.user32
+#     user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
+#     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+#         server.login('alumni.vit18@gmail.com', 'Root1234')
+#         message = 'Subject: The ngrok url\n\nHello,\nThe url is {}\nThank you'.format(url)
+#         for email in ['newalkarpranjal2410.pn@gmail.com', 'kaustubhodak1@gmail.com', 'tanmaypardeshi@gmail.com']:
+#             server.sendmail('alumni.vit18@gmail.com', email, message)
+#             user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
+#         server.close()
 
 
-# Home route
+# WMI_API Class
+class WMI_API(BaseModel):
+    win_class: Optional[str]
+    projection: Optional[list]
+    match: Optional[dict]
+    query: Optional[str]
+    func: Optional[str]
+    args: Optional[list]
 
-@app.get("/")
-def root():
-    return {"Message": "Welome to SysAdmin!"}
 
-
-# Get all/stopped/running services
-
-@app.get("/api/services/")
-def get_services(filter: Optional[str] = None, operation: Optional[str] = None):
-    res = services.get_running_services(filter, operation)
+# WMI Endpoint
+@app.post("/api/wmi")
+def wmi_route(req: WMI_API):
+    res = wmi_template.wmi_controller(req)
+    if isinstance(res, str):
+        raise HTTPException(400, res)
     return res
 
 
-# Start or stop a particular service
+# Class for Win32
+class Win32_API(BaseModel):
+    module: str
+    func: str
+    args: Optional[list]
 
-@app.post("/api/service/")
-def operate_on_service(service: Service):
-    res = services.stop_start_service(service)
+
+# Win32 Endpoint
+@app.post("/api/win32")
+def win32_route(req: Win32_API):
+    res = win32_template.win32_controller(req)
+    if isinstance(res, str):
+        raise HTTPException(400, res)
     return res
 
 
-# Get all processes
-
-@app.get("/api/processes/")
-def get_processses():
-    res = processes.get_process()
-    return res
+# Class for psutil
+class Psutil_API(BaseModel):
+    func: str
+    dargs: Optional[dict]
 
 
-# Stop a running process
-
-@app.post("/api/process/")
-def stop_processes(process: Process):
-    res = processes.stop_or_get_process(process)
-    return res
-
-
-# Get ports
-
-@app.get("/api/ports/")
-def get_ports(filter: str):
-    res = ports.get_data(filter)
+# psutil endpoint
+@app.post("/api/psutil")
+def psutil_route(req: Psutil_API):
+    res = psutil_template.psutil_controller(req)
+    if isinstance(res, str):
+        raise HTTPException(400, res)
     return res
 
 
