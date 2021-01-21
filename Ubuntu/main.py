@@ -1,20 +1,15 @@
-import wmi
-import sys
-import ctypes
 import uvicorn
-import pythoncom
+from elevate import elevate
 from fastapi import FastAPI, HTTPException
 from typing import Optional
 from pydantic import BaseModel
 
-from scripts import services
-from scripts import processes
-from scripts import ports
-
+from scripts import services, psutil_script
 
 app = FastAPI()
 
 # Class for service
+
 
 class Service(BaseModel):
     name: str
@@ -22,19 +17,25 @@ class Service(BaseModel):
 
 # Class for process
 
+
 class Process(BaseModel):
-    pid : int
+    pid: int
     action: Optional[str] = None
 
-# Run as administrator on startup
+
+class PsUtil(BaseModel):
+    func: str
+    dargs: Optional[dict]
+
+    # Run as administrator on startup
+
 
 @app.on_event('startup')
 async def startup_event():
-    if not ctypes.windll.shell32.IsUserAnAdmin():
-        ctypes.windll.shell32.ShellExecuteW(
-        None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+    elevate(graphical=False)
 
 # Home route
+
 
 @app.get("/")
 def root():
@@ -42,38 +43,22 @@ def root():
 
 # Get all/stopped/running services
 
+
 @app.get("/api/services/")
-def get_services(filter: Optional[str] = None, operation : Optional[str] = None):
-    res = services.get_running_services(filter, operation)
+def get_services(filter: Optional[str] = None):
+    res = services.get_running_services(filter)
     return res
 
-# Start or stop a particular service
 
-@app.post("/api/service/")
-def operate_on_service(service : Service):
-    res = services.stop_start_service(service)
+# psutil implmentation
+
+@app.post("/api/psutil")
+def psutil_route(req: PsUtil):
+    res = psutil_script.psutil_controller(req)
+    if isinstance(res, str):
+        raise HTTPException(400, res)
     return res
 
-# Get all processes
-
-@app.get("/api/processes/")
-def get_processses():
-    res = processes.get_process()
-    return res
-
-# Stop a running process
-
-@app.post("/api/process/")
-def stop_processes(process : Process):
-    res = processes.stop_or_get_process(process)
-    return res
-
-# Get ports
-
-@app.get("/api/ports/")
-def get_ports(filter: str):
-    res = ports.get_data(filter)
-    return res
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
