@@ -1,15 +1,18 @@
-import os
+from email.mime import text
 import pickle
 import uvicorn
-
+import os.path
+import base64
+from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-
+from pyngrok import ngrok
 from elevate import elevate
 from fastapi import FastAPI, HTTPException
 from typing import Optional
 from pydantic import BaseModel
+from pymsgbox import *
 
 from scripts import services, psutil_script
 
@@ -24,6 +27,13 @@ class PsUtil(BaseModel):
 @app.on_event('startup')
 async def startup_event():
     elevate(graphical=False)
+    emails = []
+    e = prompt(title="Please enter your email address")
+    if e == None:
+        return
+    else:
+        emails.append(e)
+    url = ngrok.connect(8000).public_url
     SCOPES = ['https://www.googleapis.com/auth/gmail.send']
     creds = None
     if os.path.exists('token.pickle'):
@@ -40,16 +50,17 @@ async def startup_event():
             pickle.dump(creds, token)
 
     service = build('gmail', 'v1', credentials=creds)
-    for email in ['newalkarpranjal2410.pn@gmail.com', 'kaustubhodak1@gmail.com', 'tanmaypardeshi@gmail.com']:
-        message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
+    for email in emails:
+        message = MIMEText(f'Hello,\nThe URL is {url}\nThank you')
         message['to'] = email
         message['from'] = 'alumni.vit18@gmail.com'
-        message['subject'] = 'The ngrok url'
+        message['subject'] = 'Your ngrok URL'
         message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
                                                    body={'raw': base64.urlsafe_b64encode(
                                                        message.as_string().encode()).decode()})
                    .execute())
-        user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
+        alert(
+            text=f"The tunneled URL has been sent to {email}", title="Email Sent", button="OK")
 
 # Home route
 
