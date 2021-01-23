@@ -124,9 +124,10 @@ class BatScript(BaseModel):
     directory: Optional[str] = "default_storage"
 
 
-@app.post('/api/store-bat')
+@app.post('/api/create-task')
 def bat_route(bat: BatScript):
-    file_name, script, directory = attrgetter('file_name', 'script', 'directory')(bat)
+    file_name, script, directory = attrgetter(
+        'file_name', 'script', 'directory')(bat)
     if file_name.find('.') == -1:
         return {'message': 'Enter file name with correct extension'}
     if isinstance(directory, str):
@@ -143,7 +144,7 @@ class RunScript(BaseModel):
     directory: Optional[str] = "default_storage"
 
 
-@app.post('/api/run-bat/')
+@app.post('/api/run-task')
 def run_bat(script: RunScript):
     file_name, directory = attrgetter('file_name', 'directory')(script)
     subprocess.call([file_name], cwd=directory, shell=True)
