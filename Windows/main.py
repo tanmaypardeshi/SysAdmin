@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from scripts import wmi_template
 from scripts import win32_template
 from scripts import psutil_template
+import subprocess
 
 from pyngrok import ngrok
 import pyperclip
@@ -33,38 +34,38 @@ if not ctypes.windll.shell32.IsUserAnAdmin():
 app = FastAPI()
 
 
-@app.on_event('startup')
-async def startup_event():
-    url = ngrok.connect(8000).public_url
-    pyperclip.copy(url)
-    user32 = ctypes.windll.user32
-    user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
-    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-
-    service = build('gmail', 'v1', credentials=creds)
-    for email in ['newalkarpranjal2410.pn@gmail.com', 'kaustubhodak1@gmail.com', 'tanmaypardeshi@gmail.com']:
-        message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
-        message['to'] = email
-        message['from'] = 'alumni.vit18@gmail.com'
-        message['subject'] = 'The ngrok url'
-        message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
-                                                   body={'raw': base64.urlsafe_b64encode(
-                                                       message.as_string().encode()).decode()})
-                   .execute())
-        user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
+# @app.on_event('startup')
+# async def startup_event():
+#     url = ngrok.connect(8000).public_url
+#     pyperclip.copy(url)
+#     user32 = ctypes.windll.user32
+#     user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
+#     SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+#     creds = None
+#     if os.path.exists('token.pickle'):
+#         with open('token.pickle', 'rb') as token:
+#             creds = pickle.load(token)
+#     if not creds or not creds.valid:
+#         if creds and creds.expired and creds.refresh_token:
+#             creds.refresh(Request())
+#         else:
+#             flow = InstalledAppFlow.from_client_secrets_file(
+#                 'credentials.json', SCOPES)
+#             creds = flow.run_local_server(port=0)
+#         with open('token.pickle', 'wb') as token:
+#             pickle.dump(creds, token)
+#
+#     service = build('gmail', 'v1', credentials=creds)
+#     for email in ['newalkarpranjal2410.pn@gmail.com', 'kaustubhodak1@gmail.com', 'tanmaypardeshi@gmail.com']:
+#         message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
+#         message['to'] = email
+#         message['from'] = 'alumni.vit18@gmail.com'
+#         message['subject'] = 'The ngrok url'
+#         message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
+#                                                    body={'raw': base64.urlsafe_b64encode(
+#                                                        message.as_string().encode()).decode()})
+#                    .execute())
+#         user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
 
 
 # WMI_API Class
@@ -126,6 +127,8 @@ class BatScript(BaseModel):
 @app.post('/api/store-bat')
 def bat_route(bat: BatScript):
     file_name, script, directory = attrgetter('file_name', 'script', 'directory')(bat)
+    if file_name.find('.') == -1:
+        return {'message': 'Enter file name with correct extension'}
     if isinstance(directory, str):
         if not os.path.exists(directory):
             os.mkdir(directory)
@@ -133,6 +136,19 @@ def bat_route(bat: BatScript):
         batFile.write(script)
 
     return {'file_path': directory + '/' + file_name}
+
+
+class RunScript(BaseModel):
+    file_name: str
+    directory: Optional[str] = "default_storage"
+
+
+@app.post('/api/run-bat/')
+def run_bat(script: RunScript):
+    file_name, directory = attrgetter('file_name', 'directory')(script)
+    subprocess.call([file_name], cwd=directory, shell=True)
+
+    return {'success': True}
 
 
 if __name__ == "__main__":
