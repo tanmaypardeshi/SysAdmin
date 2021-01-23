@@ -10,7 +10,7 @@ print(url)
 
 @app.get("/")
 def read_root():
-    return {"message": "Hi Krisha!"}
+    return {"message": "Welcome to SysAdmin!"}
 
 
 @app.get("/items/{item_id}")
