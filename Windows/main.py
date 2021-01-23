@@ -4,6 +4,7 @@ import base64
 import pickle
 import os.path
 from email.mime.text import MIMEText
+from operator import attrgetter
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -114,6 +115,24 @@ def psutil_route(req: Psutil_API):
     if isinstance(res, str):
         raise HTTPException(400, res)
     return res
+
+
+class BatScript(BaseModel):
+    script: str
+    file_name: str
+    directory: Optional[str] = "default_storage"
+
+
+@app.post('/api/store-bat')
+def bat_route(bat: BatScript):
+    file_name, script, directory = attrgetter('file_name', 'script', 'directory')(bat)
+    if isinstance(directory, str):
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+    with open(directory + '/' + file_name, 'w') as batFile:
+        batFile.write(script)
+
+    return {'file_path': directory + '/' + file_name}
 
 
 if __name__ == "__main__":
