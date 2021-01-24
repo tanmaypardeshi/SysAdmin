@@ -4,16 +4,18 @@ import csv
 import time
 import base64
 import pickle
+from pydantic.errors import DateTimeError
 import uvicorn
 import pathlib
 import subprocess
 from pymsgbox import *
 from pyngrok import ngrok
 from email.mime import text
+from datetime import date, datetime, timedelta
 from typing import Optional
 from elevate import elevate
 from pydantic import BaseModel
-from operator import attrgetter
+from operator import attrgetter, ne
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
@@ -25,11 +27,24 @@ from scripts import services, psutil_script, pysystemd_script
 
 app = FastAPI()
 
+i = 0
 
-# @app.on_event('startup')
-# @repeat_every(seconds=1)
-# def task() -> None:
-#     file = open("/usr/SysAdmin/schedule.json", "r")
+
+@app.on_event('startup')
+@repeat_every(seconds=1)
+def task() -> None:
+    file = open("schedule.csv", "r+")
+    global i
+    reader = csv.reader(file, delimiter=",")
+    for iter in reader:
+        previous = datetime.now() + timedelta(seconds=30)
+        next = datetime.now() + timedelta(seconds=30)
+        try:
+            date = str(datetime.today()).split()[0]
+            now = datetime.strptime(date + " " + iter[2], "%Y-%m-%d %H:%M:%S")
+            print(now <= next)
+        except Exception as e:
+            print(str(e))
 
 
 class PsUtil(BaseModel):
