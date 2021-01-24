@@ -15,6 +15,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from typing import Optional
 from pydantic import BaseModel
+import pathlib
 
 from scripts import wmi_template
 from scripts import win32_template
@@ -121,40 +122,37 @@ def psutil_route(req: Psutil_API):
 class BatScript(BaseModel):
     script: str
     file_name: str
-    directory: Optional[str] = None
+    directory: Optional[str] = 'C:/Users/SysAdmin'
 
 
 @app.post('/api/create-task')
 def bat_route(bat: BatScript):
-    default = 'C:/Users/SysAdmin'
     file_name, script, directory = attrgetter(
         'file_name', 'script', 'directory')(bat)
     if file_name.find('.') == -1:
         return {'message': 'Enter file name with correct extension'}
     if isinstance(directory, str):
-        if not os.path.exists('C:/Users/SysAdmin/' + directory):
-            os.mkdir('C:/Users/SysAdmin/' + directory)
-    else:
-        directory = ''
-    with open(os.path.join(default, directory, file_name), 'w') as batFile:
+        if not os.path.exists(directory):
+            pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
+    with open(os.path.join(directory, file_name), 'w') as batFile:
         batFile.write(script)
-    return {'file_path': directory + '/' + file_name}
+    return {'file_path': os.path.join(directory, file_name)}
 
 
 class RunScript(BaseModel):
     file_name: str
-    directory: Optional[str] = None
+    directory: Optional[str] = 'C:/Users/SysAdmin/'
 
 
 @app.post('/api/run-task')
 def run_bat(script: RunScript):
     file_name, directory = attrgetter('file_name', 'directory')(script)
-    if not isinstance(directory, str):
-        directory = ''
+    if not os.path.exists(os.path.join(directory, file_name)):
+        return {'message': 'File not found, enter correct path'}
     try:
         subprocess.call([os.path.join('C:/Users/SysAdmin', directory, file_name)], shell=True)
-    except Exception as e:
-        return {'message': 'Could not find path or script is invalid'}
+    except subprocess.SubprocessError:
+        return {'message': 'Could not run your script'}
     return {'success': True}
 
 
