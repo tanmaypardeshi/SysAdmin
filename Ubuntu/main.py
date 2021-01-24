@@ -41,6 +41,7 @@ class Script(BaseModel):
     script: str
     file_name: str
     directory: Optional[str] = "/usr/SysAdmin/"
+    datetime: Optional[str]
 
 
 class RunScript(BaseModel):
@@ -125,7 +126,7 @@ def create_task(sc: Script):
         return {'message': 'Enter file name with correct extension'}
     if isinstance(directory, str):
         if not os.path.exists(directory):
-            os.mkdir(directory)
+            pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
     if directory[-1] == '/':
         with open(f"{directory}{file_name}", 'w') as file:
             file.write(script)
