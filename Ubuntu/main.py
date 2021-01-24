@@ -90,7 +90,7 @@ def root():
 @app.get("/api/services/")
 def get_services(filter: Optional[str] = None):
     res = services.get_running_services(filter)
-    return res
+    return {"data": res}
 
 
 @app.post("/api/psutil")
@@ -132,7 +132,7 @@ def run_task(rc: RunScript):
                 ['sh', full_location], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
             o, e = r1.communicate()
             if o:
-                return {"message": o}
+                return {"data": o}
             else:
                 return {"message": e}
         except subprocess.CalledProcessError as e:
