@@ -1,6 +1,6 @@
 import os
 import pickle
-from tkinter.constants import PIESLICE
+from pydantic.networks import HttpUrl
 from pydantic.tools import T
 from pydantic.types import DirectoryPath
 import uvicorn
@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from pymsgbox import *
 from uvicorn import supervisors
 
-from scripts import services, psutil_script
+from scripts import services, psutil_script, pysystemd_script
 
 app = FastAPI()
 
@@ -29,6 +29,12 @@ app = FastAPI()
 class PsUtil(BaseModel):
     func: str
     dargs: Optional[dict]
+
+
+class PySystemd(BaseModel):
+    class_name: str
+    func: str
+    dargs: Optional[str]
 
 
 class Script(BaseModel):
@@ -99,6 +105,14 @@ def psutil_route(req: PsUtil):
     if isinstance(res, str):
         raise HTTPException(400, res)
     return {f"{req.func}": res}
+
+
+@app.post("/api/pysystemd")
+def pysystemd_route(req: PySystemd):
+    res = pysystemd_script.pysystemd_script(req)
+    if isinstance(res, str):
+        raise HTTPException(400, res)
+    return {f"{req.class_name}({req.func})": res}
 
 
 @app.post("/api/create-task")
