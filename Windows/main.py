@@ -76,9 +76,9 @@ async def startup_event():
     for email in emails:
         message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
         message['to'] = email
-        message['from'] = 'alumni.vit18@gmail.com'
+        message['from'] = 'sysa2427@gmail.com'
         message['subject'] = 'The ngrok url'
-        message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
+        message = (service.users().messages().send(userId='sysa2427@gmail.com',
                                                    body={'raw': base64.urlsafe_b64encode(
                                                        message.as_string().encode()).decode()})
                    .execute())
@@ -135,9 +135,9 @@ async def task() -> None:
                                     f'Hi there!\n\nYour script {file_name} in {directory} has been executed '
                                     f'successfully!\n\nHere is output:- \n\n{o}')
                                 message['to'] = email
-                                message['from'] = 'alumni.vit18@gmail.com'
+                                message['from'] = 'sysa2427@gmail.com'
                                 message['subject'] = f'About your script {file_name}'
-                                message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
+                                message = (service.users().messages().send(userId='sysa2427@gmail.com',
                                                                            body={'raw': base64.urlsafe_b64encode(
                                                                                message.as_string().encode()).decode()})
                                            .execute())
