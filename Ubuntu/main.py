@@ -1,29 +1,35 @@
+from functools import wraps
 import os
-import pickle
-from pydantic.networks import HttpUrl
-from pydantic.tools import T
-from pydantic.types import DirectoryPath
-import uvicorn
+import csv
+import time
 import base64
+import pickle
+import uvicorn
 import pathlib
 import subprocess
+from pymsgbox import *
+from pyngrok import ngrok
 from email.mime import text
-from operator import attrgetter, sub
+from typing import Optional
+from elevate import elevate
+from pydantic import BaseModel
+from operator import attrgetter
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from pyngrok import ngrok
-from elevate import elevate
+from google_auth_oauthlib.flow import InstalledAppFlow
 from fastapi import FastAPI, HTTPException
-from typing import Optional
-from pydantic import BaseModel
-from pymsgbox import *
-from uvicorn import supervisors
+from fastapi_utils.tasks import repeat_every
 
 from scripts import services, psutil_script, pysystemd_script
 
 app = FastAPI()
+
+
+# @app.on_event('startup')
+# @repeat_every(seconds=1)
+# def task() -> None:
+#     file = open("/usr/SysAdmin/schedule.json", "r")
 
 
 class PsUtil(BaseModel):
@@ -42,6 +48,7 @@ class Script(BaseModel):
     file_name: str
     directory: Optional[str] = "/usr/SysAdmin/"
     datetime: Optional[str]
+    schedule: Optional[list]
 
 
 class RunScript(BaseModel):
@@ -118,8 +125,8 @@ def pysystemd_route(req: PySystemd):
 
 @app.post("/api/create-task")
 def create_task(sc: Script):
-    file_name, script, directory = attrgetter(
-        'file_name', 'script', 'directory'
+    file_name, script, directory, schedule = attrgetter(
+        'file_name', 'script', 'directory', 'schedule'
     )(sc)
     _, ext = os.path.splitext(file_name)
     if ext == '':
@@ -128,15 +135,29 @@ def create_task(sc: Script):
         if not os.path.exists(directory):
             pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
     if directory[-1] == '/':
+        if os.path.exists(f"{directory}{file_name}"):
+            raise HTTPException(
+                400, f"{file_name} already exists in {directory}")
         with open(f"{directory}{file_name}", 'w') as file:
             file.write(script)
     else:
+        if os.path.exists(f"{directory}/{file_name}"):
+            raise HTTPException(
+                400, f"{file_name} already exists in {directory}")
         with open(f"{directory}/{file_name}", 'w') as file:
             file.write(script)
+    if isinstance(schedule, list):
+        with open("/usr/SysAdmin/schedule.csv", "a+") as fp:
+            writer = csv.writer(fp, lineterminator="\n")
+            if fp.tell() == 0:
+                writer.writerow(["File Name", "Directory", "Time"])
+            for s in schedule:
+                writer.writerow([file_name, directory, s])
+
     return {"message": f"{file_name} written to {directory} successfully."}
 
 
-@app.post("/api/run-task")
+@ app.post("/api/run-task")
 def run_task(rc: RunScript):
     file_name, directory = attrgetter('file_name', 'directory')(rc)
     full_location = directory + \
