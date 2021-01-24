@@ -6,6 +6,9 @@ import os.path
 from email.mime.text import MIMEText
 from operator import attrgetter
 
+from elevate import elevate
+from fastapi_utils.tasks import repeat_every
+from datetime import date, datetime, timedelta
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -14,6 +17,7 @@ import csv
 import ctypes
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from pymsgbox import *
 from typing import Optional
 from pydantic import BaseModel
 import pathlib
@@ -36,38 +40,116 @@ if not ctypes.windll.shell32.IsUserAnAdmin():
 app = FastAPI()
 
 
-# @app.on_event('startup')
-# async def startup_event():
-#     url = ngrok.connect(8000).public_url
-#     pyperclip.copy(url)
-#     user32 = ctypes.windll.user32
-#     user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
-#     SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-#     creds = None
-#     if os.path.exists('token.pickle'):
-#         with open('token.pickle', 'rb') as token:
-#             creds = pickle.load(token)
-#     if not creds or not creds.valid:
-#         if creds and creds.expired and creds.refresh_token:
-#             creds.refresh(Request())
-#         else:
-#             flow = InstalledAppFlow.from_client_secrets_file(
-#                 'credentials.json', SCOPES)
-#             creds = flow.run_local_server(port=0)
-#         with open('token.pickle', 'wb') as token:
-#             pickle.dump(creds, token)
-#
-#     service = build('gmail', 'v1', credentials=creds)
-#     for email in ['newalkarpranjal2410.pn@gmail.com', 'kaustubhodak1@gmail.com', 'tanmaypardeshi@gmail.com']:
-#         message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
-#         message['to'] = email
-#         message['from'] = 'alumni.vit18@gmail.com'
-#         message['subject'] = 'The ngrok url'
-#         message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
-#                                                    body={'raw': base64.urlsafe_b64encode(
-#                                                        message.as_string().encode()).decode()})
-#                    .execute())
-#         user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
+@app.on_event('startup')
+async def startup_event():
+    elevate(graphical=False)
+    pathlib.Path("C:/Users/SysAdmin/").mkdir(parents=True, exist_ok=True)
+    emails = []
+    e = input("Please enter your email address: ")
+    if e is None:
+        return
+    else:
+        emails.append(e)
+    file = open('C:/Users/SysAdmin/email.txt', 'w')
+    file.write(e)
+    file.close()
+    url = ngrok.connect(8000).public_url
+    pyperclip.copy(url)
+    user32 = ctypes.windll.user32
+    user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)
+    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    service = build('gmail', 'v1', credentials=creds)
+    for email in emails:
+        message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
+        message['to'] = email
+        message['from'] = 'alumni.vit18@gmail.com'
+        message['subject'] = 'The ngrok url'
+        message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
+                                                   body={'raw': base64.urlsafe_b64encode(
+                                                       message.as_string().encode()).decode()})
+                   .execute())
+        user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
+
+
+@app.on_event('startup')
+@repeat_every(seconds=60)
+async def task() -> None:
+    elevate(graphical=False)
+    pathlib.Path("C:/Users/SysAdmin").mkdir(parents=True, exist_ok=True)
+    file = open("C:/Users/SysAdmin/schedule.csv", "r+")
+    reader = csv.reader(file, delimiter=",")
+    previous = datetime.now() - timedelta(seconds=30)
+    next = datetime.now() + timedelta(seconds=30)
+    for iter in reader:
+        try:
+            date = str(datetime.today()).split()[0]
+            now = datetime.strptime(date + " " + iter[2], "%Y-%m-%d %H:%M:%S")
+            if previous <= now <= next:
+                file_name = iter[0]
+                directory = iter[1]
+                full_location = os.path.join(directory, file_name)
+                if os.path.exists(full_location):
+                    try:
+                        r1 = subprocess.Popen(
+                            [full_location], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, encoding='utf-8')
+                        o, e = r1.communicate()
+                        if o:
+                            emails = []
+                            file = open('C:/Users/SysAdmin/email.txt')
+                            emails.append(file.read())
+                            file.close()
+                            SCOPES = [
+                                'https://www.googleapis.com/auth/gmail.send']
+                            creds = None
+                            if os.path.exists('token.pickle'):
+                                with open('token.pickle', 'rb') as token:
+                                    creds = pickle.load(token)
+                            if not creds or not creds.valid:
+                                if creds and creds.expired and creds.refresh_token:
+                                    creds.refresh(Request())
+                                else:
+                                    flow = InstalledAppFlow.from_client_secrets_file(
+                                        'credentials.json', SCOPES)
+                                    creds = flow.run_local_server(port=0)
+                                with open('token.pickle', 'wb') as token:
+                                    pickle.dump(creds, token)
+
+                            service = build('gmail', 'v1', credentials=creds)
+                            for email in emails:
+                                message = MIMEText(
+                                    f'Hi there!\n\nYour script {file_name} in {directory} has been executed '
+                                    f'successfully!\n\nHere is output:- \n\n{o}')
+                                message['to'] = email
+                                message['from'] = 'alumni.vit18@gmail.com'
+                                message['subject'] = f'About your script {file_name}'
+                                message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
+                                                                           body={'raw': base64.urlsafe_b64encode(
+                                                                               message.as_string().encode()).decode()})
+                                           .execute())
+                        else:
+                            pass
+                    except subprocess.CalledProcessError as e:
+                        pass
+                else:
+                    pass
+        except Exception as e:
+            print(str(e))
+    file.close()
 
 
 # WMI_API Class
@@ -142,8 +224,6 @@ def bat_route(bat: BatScript):
     if isinstance(schedule, list):
         with open(os.path.join(directory, 'schedule.csv'), "a+") as fp:
             writer = csv.writer(fp, lineterminator="\n")
-            if fp.tell() == 0:
-                writer.writerow(["File Name", "Directory", "Time"])
             for s in schedule:
                 writer.writerow([file_name, directory, s])
     return {'file_path': os.path.join(directory, file_name)}
