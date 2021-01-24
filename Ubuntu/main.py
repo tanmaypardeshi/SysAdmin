@@ -4,14 +4,13 @@ import csv
 import time
 import base64
 import pickle
-from pydantic.errors import DateTimeError
 import uvicorn
 import pathlib
 import subprocess
 from pymsgbox import *
 from pyngrok import ngrok
 from email.mime import text
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 from elevate import elevate
 from pydantic import BaseModel
@@ -56,43 +55,43 @@ class RunScript(BaseModel):
 async def startup_event():
     elevate(graphical=False)
     pathlib.Path("/usr/SysAdmin/").mkdir(parents=True, exist_ok=True)
-    emails = []
-    e = prompt(title="Please enter your email address")
-    if e == None:
-        return
-    else:
-        emails.append(e)
-    file = open('/usr/SysAdmin/email.txt', 'w+')
-    file.write(e)
-    file.close()
-    url = ngrok.connect(8000).public_url
-    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+    # emails = []
+    # e = prompt(title="Please enter your email address")
+    # if e == None:
+    #     return
+    # else:
+    #     emails.append(e)
+    # file = open('/usr/SysAdmin/email.txt', 'w+')
+    # file.write(e)
+    # file.close()
+    # url = ngrok.connect(8000).public_url
+    # SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+    # creds = None
+    # if os.path.exists('token.pickle'):
+    #     with open('token.pickle', 'rb') as token:
+    #         creds = pickle.load(token)
+    # if not creds or not creds.valid:
+    #     if creds and creds.expired and creds.refresh_token:
+    #         creds.refresh(Request())
+    #     else:
+    #         flow = InstalledAppFlow.from_client_secrets_file(
+    #             'credentials.json', SCOPES)
+    #         creds = flow.run_local_server(port=0)
+    #     with open('token.pickle', 'wb') as token:
+    #         pickle.dump(creds, token)
 
-    service = build('gmail', 'v1', credentials=creds)
-    for email in emails:
-        message = MIMEText(f'Hello,\nThe URL is {url}\nThank you')
-        message['to'] = email
-        message['from'] = 'alumni.vit18@gmail.com'
-        message['subject'] = 'Your ngrok URL'
-        message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
-                                                   body={'raw': base64.urlsafe_b64encode(
-                                                       message.as_string().encode()).decode()})
-                   .execute())
-        alert(
-            text=f"The tunneled URL has been sent to {email}", title="Email Sent", button="OK")
+    # service = build('gmail', 'v1', credentials=creds)
+    # for email in emails:
+    #     message = MIMEText(f'Hello,\nThe URL is {url}\nThank you')
+    #     message['to'] = email
+    #     message['from'] = 'alumni.vit18@gmail.com'
+    #     message['subject'] = 'Your ngrok URL'
+    #     message = (service.users().messages().send(userId='alumni.vit18@gmail.com',
+    #                                                body={'raw': base64.urlsafe_b64encode(
+    #                                                    message.as_string().encode()).decode()})
+    #                .execute())
+    #     alert(
+    #         text=f"The tunneled URL has been sent to {email}", title="Email Sent", button="OK")
 
 
 @app.on_event('startup')
@@ -215,8 +214,6 @@ def create_task(sc: Script):
     if isinstance(schedule, list):
         with open("/usr/SysAdmin/schedule.csv", "a+") as fp:
             writer = csv.writer(fp, lineterminator="\n")
-            if fp.tell() == 0:
-                writer.writerow(["File Name", "Directory", "Time"])
             for s in schedule:
                 writer.writerow([file_name, directory, s])
 
