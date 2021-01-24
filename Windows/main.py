@@ -10,6 +10,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import sys
+import csv
 import ctypes
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -123,12 +124,14 @@ class BatScript(BaseModel):
     script: str
     file_name: str
     directory: Optional[str] = 'C:/Users/SysAdmin'
+    schedule: Optional[list]
+    datetime: Optional[str]
 
 
 @app.post('/api/create-task')
 def bat_route(bat: BatScript):
-    file_name, script, directory = attrgetter(
-        'file_name', 'script', 'directory')(bat)
+    file_name, script, directory, schedule = attrgetter(
+        'file_name', 'script', 'directory', 'schedule')(bat)
     if file_name.find('.') == -1:
         return {'message': 'Enter file name with correct extension'}
     if isinstance(directory, str):
@@ -136,6 +139,13 @@ def bat_route(bat: BatScript):
             pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
     with open(os.path.join(directory, file_name), 'w') as batFile:
         batFile.write(script)
+    if isinstance(schedule, list):
+        with open(os.path.join(directory, 'schedule.csv'), "a+") as fp:
+            writer = csv.writer(fp, lineterminator="\n")
+            if fp.tell() == 0:
+                writer.writerow(["File Name", "Directory", "Time"])
+            for s in schedule:
+                writer.writerow([file_name, directory, s])
     return {'file_path': os.path.join(directory, file_name)}
 
 
