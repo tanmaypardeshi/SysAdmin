@@ -16,3 +16,27 @@ Benefits:
 Supported Operating Systems:
 <li>Debian Based Linux Distributions</li>
 <li>Windows</li>
+
+##Installation Instructions:
+
+<li>For Windows:</li>
+<ol>
+    <li>Extract the SAC.rar file.</li>
+    <li>Run the executable installer file.</li>
+    <li>Enter an email when prompted.</li>
+    <li>"START: The operation completed successfully." should show up on your screen. You can exit the installer now.</li>
+    <li>You will receive the tunneled url at the entered email in a few minutes.</li>
+    <li>In the Postman collection, replace the value of {{fast_api}} variable with this value.</li>
+</ol>
+<li>For Debian Based Linux Distributions</li>
+<ol>
+    <li>Extract the SysAdmin.zip file</li>
+    <li>Open the terminal where the files have been extracted.</li>
+    <li>Run <code>chmod +x run.sh</code> to make run.sh executable. NOTE: run.sh and SysAdmin have to be in the same directory.</li>
+    <li>Run <code>./run.sh</code> to start the server</li>
+    <li>Enter an email when prompted.</li>
+    <li>"The tunneled url have been sent to <i>email</i>" should show up on your screen.</li>
+    <li>Now you can keep the terminal on in the background and make API calls.</li>
+    <li>In the Postman collection, replace the value of {{fast_api}} variable with the tunneled url value.</li>
+</ol>
+
