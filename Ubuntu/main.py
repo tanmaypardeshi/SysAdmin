@@ -21,6 +21,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from fastapi import FastAPI, HTTPException
 from fastapi_utils.tasks import repeat_every
+from threading import Thread
 
 from scripts import psutil_script, pysystemd_script
 
@@ -85,8 +86,8 @@ async def startup_event():
                                                    body={'raw': base64.urlsafe_b64encode(
                                                        message.as_string().encode()).decode()})
                    .execute())
-        alert(
-            text=f"The tunneled URL has been sent to {email}", title="Email Sent", button="OK")
+        Thread(target=lambda: alert(
+            text=f"The tunneled URL has been sent to {email}", title="Email Sent", button="OK")).start()
 
 
 @app.on_event('startup')
