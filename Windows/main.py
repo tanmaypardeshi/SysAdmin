@@ -240,10 +240,16 @@ def run_bat(script: RunScript):
     if not os.path.exists(os.path.join(directory, file_name)):
         return {'message': 'File not found, enter correct path'}
     try:
-        subprocess.call([os.path.join('C:/Users/SysAdmin', directory, file_name)], shell=True)
-    except subprocess.SubprocessError:
-        return {'message': 'Could not run your script'}
-    return {'success': True}
+        r1 = subprocess.Popen(
+            [os.path.join(directory, file_name)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            encoding='utf-8')
+        o, e = r1.communicate()
+        if o:
+            return {"data": o}
+        else:
+            return {"message": e}
+    except subprocess.CalledProcessError as e:
+        return {"messaage": f"Could not run your script. The error is {str(e)}"}
 
 
 if __name__ == "__main__":
