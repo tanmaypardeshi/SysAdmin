@@ -9,15 +9,25 @@ then
 	exit 1
 fi
 
-if [ -e CDFN-client ]
+sudo mkdir /home/$USER/SysAdmin/
+
+filename1="email.txt"
+
+touch $filename1
+
+echo "$EMAIL" >> $filename1
+
+sudo mv $filename1 /home/$USER/SysAdmin/
+
+if [ -e SysAdmin ]
 then
-	sudo cp CDFN-client /home/$USER/CDFN/
+	sudo cp SysAdmin /home/$USER/SysAdmin/
 else
-	echo "CDFN-client not found. Make sure it is in the same directory as install.sh"
+	echo "SysAdmin not found. Make sure it is in the same directory as install.sh"
 	echo "Exiting...."
 	exit 1
 fi
 
-sudo cd /home/$USER/SysAdmin/
+cd /home/$USER/SysAdmin/
 
 ./SysAdmin
