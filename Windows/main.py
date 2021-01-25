@@ -3,16 +3,14 @@ from threading import Thread
 
 import base64
 import pickle
-import os.path
+from os import path, environ, getenv
 from email.mime.text import MIMEText
 from operator import attrgetter
 
 from elevate import elevate
 from fastapi_utils.tasks import repeat_every
 from datetime import date, datetime, timedelta
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+import smtplib
 import sys
 import csv
 import ctypes
@@ -32,11 +30,29 @@ from pyngrok import ngrok
 import pyperclip
 import smtplib
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Run as administrator on startup
 if not ctypes.windll.shell32.IsUserAnAdmin():
     ctypes.windll.shell32.ShellExecuteW(
         None, "runas", sys.executable, " ".join(sys.argv), None, 1)
     sys.exit(0)
+
+def getabspath(filename):
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = getattr(
+            sys, '_MEIPASS', path.abspath(path.dirname(__file__)))
+        return path.abspath(path.join(bundle_dir, filename))
+
+    return path.abspath(path.join(path.dirname(__file__), filename))
+
+if getenv('EMAIL') is None and len(sys.argv) == 1:
+    sys.exit('Email not supplied, exiting')
+else:
+    environ['EMAIL'] = sys.argv[1] if len(sys.argv) == 2 else getenv('EMAIL')
+    with open(getabspath('.env'), 'w') as env_file:
+        env_file.write("EMAIL=" + environ['EMAIL'])
 
 app = FastAPI()
 
@@ -44,51 +60,29 @@ app = FastAPI()
 @app.on_event('startup')
 async def startup_event():
     pathlib.Path("C:/Users/SysAdmin/").mkdir(parents=True, exist_ok=True)
-    emails = []
-    e = input("Please enter your email address: ")
-    if e is None:
-        return
-    else:
-        emails.append(e)
-    file = open('C:/Users/SysAdmin/email.txt', 'w')
-    file.write(e)
-    file.close()
     url = ngrok.connect(8000).public_url
     pyperclip.copy(url)
     user32 = ctypes.windll.user32
-    Thread(target=lambda: user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)).start()
-    # SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-    # creds = None
-    # if os.path.exists('token.pickle'):
-    #     with open('token.pickle', 'rb') as token:
-    #         creds = pickle.load(token)
-    # if not creds or not creds.valid:
-    #     if creds and creds.expired and creds.refresh_token:
-    #         creds.refresh(Request())
-    #     else:
-    #         flow = InstalledAppFlow.from_client_secrets_file(
-    #             'credentials.json', SCOPES)
-    #         creds = flow.run_local_server(port=0)
-    #     with open('token.pickle', 'wb') as token:
-    #         pickle.dump(creds, token)
-    #
-    # service = build('gmail', 'v1', credentials=creds)
-    # for email in emails:
-    #     message = MIMEText('Hello,\nThe url is {}\nThank you'.format(url))
-    #     message['to'] = email
-    #     message['from'] = 'sysa2427@gmail.com'
-    #     message['subject'] = 'The ngrok url'
-    #     message = (service.users().messages().send(userId='sysa2427@gmail.com',
-    #                                                body={'raw': base64.urlsafe_b64encode(
-    #                                                    message.as_string().encode()).decode()})
-    #                .execute())
-    #     user32.MessageBoxW(0, "Sent to {}".format(email), "Email Sent", 0)
+    # Thread(target=lambda: user32.MessageBoxW(0, "URI: " + url + " (copied to clipboard)", "SysAdmin is online", 0)).start()
+    msgBox = "URI: " + url + " copied to clipboard"
+    email = getenv('EMAIL')
+    if email is not None:
+        msgBox = msgBox + ", and sent to " + email + "."
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login('sysa2427@gmail.com', 'SysAdmin2427')
+            message = 'Subject: SysAdminClient is active\n\nSysAdminClient is running on ' + url
+            server.sendmail(
+                'sysa2427@gmail.com',
+                email,
+                message
+            )
+
+    Thread(target=lambda: user32.MessageBoxW(0, msgBox, "SysAdmin is online", 0)).start()
 
 
 @app.on_event('startup')
 @repeat_every(seconds=60)
 async def task() -> None:
-    elevate(graphical=False)
     pathlib.Path("C:/Users/SysAdmin").mkdir(parents=True, exist_ok=True)
     file = open("C:/Users/SysAdmin/schedule.csv", "r+")
     reader = csv.reader(file, delimiter=",")
@@ -101,46 +95,23 @@ async def task() -> None:
             if previous <= now <= next:
                 file_name = iter[0]
                 directory = iter[1]
-                full_location = os.path.join(directory, file_name)
-                if os.path.exists(full_location):
+                full_location = path.join(directory, file_name)
+                if path.exists(full_location):
                     try:
                         r1 = subprocess.Popen(
                             [full_location], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, encoding='utf-8')
                         o, e = r1.communicate()
                         if o:
-                            emails = []
-                            file = open('C:/Users/SysAdmin/email.txt')
-                            emails.append(file.read())
-                            file.close()
-                            SCOPES = [
-                                'https://www.googleapis.com/auth/gmail.send']
-                            creds = None
-                            if os.path.exists('token.pickle'):
-                                with open('token.pickle', 'rb') as token:
-                                    creds = pickle.load(token)
-                            if not creds or not creds.valid:
-                                if creds and creds.expired and creds.refresh_token:
-                                    creds.refresh(Request())
-                                else:
-                                    flow = InstalledAppFlow.from_client_secrets_file(
-                                        'credentials.json', SCOPES)
-                                    creds = flow.run_local_server(port=0)
-                                with open('token.pickle', 'wb') as token:
-                                    pickle.dump(creds, token)
-
-                            service = build('gmail', 'v1', credentials=creds)
-                            for email in emails:
-                                message = MIMEText(
-                                    f'Hi there!\n\nYour script {file_name} in {directory} has been executed '
-                                    f'successfully!\n\nHere is output:- \n\n{o}')
-                                message['to'] = email
-                                message['from'] = 'sysa2427@gmail.com'
-                                message['subject'] = f'About your script {file_name}'
-                                message = (service.users().messages().send(userId='sysa2427@gmail.com',
-                                                                           body={'raw': base64.urlsafe_b64encode(
-                                                                               message.as_string().encode()).decode()})
-                                           .execute())
+                            email = getenv('EMAIL')
+                            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                                server.login('sysa2427@gmail.com', 'SysAdmin2427')
+                                message = f'Subject: About your script {file_name}\n\nHi there!\n\nYour script {file_name} in {directory} has been executed successfully!\n\nHere is output:- \n\n{o}'
+                                server.sendmail(
+                                    'sysa2427@gmail.com',
+                                    email,
+                                    message
+                                )
                         else:
                             pass
                     except subprocess.CalledProcessError as e:
@@ -217,16 +188,16 @@ def bat_route(bat: BatScript):
     if file_name.find('.') == -1:
         return {'message': 'Enter file name with correct extension'}
     if isinstance(directory, str):
-        if not os.path.exists(directory):
+        if not path.exists(directory):
             pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
-    with open(os.path.join(directory, file_name), 'w') as batFile:
+    with open(path.join(directory, file_name), 'w') as batFile:
         batFile.write(script)
     if isinstance(schedule, list):
-        with open(os.path.join('C:/Users/SysAdmin', 'schedule.csv'), "a+") as fp:
+        with open(path.join('C:/Users/SysAdmin', 'schedule.csv'), "a+") as fp:
             writer = csv.writer(fp, lineterminator="\n")
             for s in schedule:
                 writer.writerow([file_name, directory, s])
-    return {'file_path': os.path.join(directory, file_name)}
+    return {'file_path': path.join(directory, file_name)}
 
 
 class RunScript(BaseModel):
@@ -237,11 +208,11 @@ class RunScript(BaseModel):
 @app.post('/api/run-task')
 def run_bat(script: RunScript):
     file_name, directory = attrgetter('file_name', 'directory')(script)
-    if not os.path.exists(os.path.join(directory, file_name)):
+    if not path.exists(path.join(directory, file_name)):
         return {'message': 'File not found, enter correct path'}
     try:
         r1 = subprocess.Popen(
-            [os.path.join(directory, file_name)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            [path.join(directory, file_name)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             encoding='utf-8')
         o, e = r1.communicate()
         if o:
@@ -253,4 +224,4 @@ def run_bat(script: RunScript):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

@@ -4,6 +4,7 @@ import win32.odbc
 import win32.perfmon
 import win32.servicemanager
 import win32.timer
+import win32.win32ras
 import win32.win2kras
 import win32.win32api
 import win32.win32clipboard
@@ -24,7 +25,6 @@ import win32.win32pipe
 import win32.win32print
 import win32.win32process
 import win32.win32profile
-import win32.win32ras
 import win32.win32security
 import win32.win32service
 import win32.win32transaction
