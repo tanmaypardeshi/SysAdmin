@@ -35,24 +35,24 @@ class PySystemd(BaseModel):
 class Script(BaseModel):
     script: str
     file_name: str
-    directory: Optional[str] = f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/"
+    directory: Optional[str] = f"/usr/SysAdmin/"
     datetime: Optional[str]
     schedule: Optional[list]
 
 
 class RunScript(BaseModel):
     file_name: str
-    directory: Optional[str] = f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/"
+    directory: Optional[str] = f"/usr/SysAdmin/"
 
 
 @ app.on_event('startup')
 async def startup_event():
     elevate(graphical=False)
     pathlib.Path(
-        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/").mkdir(parents=True, exist_ok=True)
+        f"/usr/SysAdmin/").mkdir(parents=True, exist_ok=True)
     emails = []
     file = open(
-        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/email.txt", 'r+')
+        f"/usr/SysAdmin/email.txt", 'r+')
     emails.append(file.read())
     file.close()
     url = ngrok.connect(8000).public_url
@@ -72,9 +72,9 @@ async def startup_event():
 async def task() -> None:
     elevate(graphical=False)
     pathlib.Path(
-        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/").mkdir(parents=True, exist_ok=True)
+        f"/usr/SysAdmin/").mkdir(parents=True, exist_ok=True)
     file = open(
-        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/schedule.csv", "r+")
+        f"/usr/SysAdmin/schedule.csv", "r+")
     reader = csv.reader(file, delimiter=",")
     previous = datetime.now() - timedelta(seconds=30)
     next = datetime.now() + timedelta(seconds=30)
@@ -96,7 +96,7 @@ async def task() -> None:
                         if o:
                             emails = []
                             file = open(
-                                f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/email.txt")
+                                f"/usr/SysAdmin/email.txt")
                             emails.append(file.read())
                             file.close()
                             with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
@@ -164,7 +164,7 @@ def create_task(sc: Script):
         with open(f"{directory}/{file_name}", 'w') as file:
             file.write(script)
     if isinstance(schedule, list):
-        with open(f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/schedule.csv", "a+") as fp:
+        with open(f"/usr/SysAdmin/schedule.csv", "a+") as fp:
             writer = csv.writer(fp, lineterminator="\n")
             for s in schedule:
                 writer.writerow([file_name, directory, s])
