@@ -1,9 +1,8 @@
 import os
 import csv
-import base64
-import pickle
 import uvicorn
 import pathlib
+import smtplib
 import subprocess
 from pymsgbox import *
 from pyngrok import ngrok
@@ -13,9 +12,6 @@ from elevate import elevate
 from pydantic import BaseModel
 from operator import attrgetter
 from email.mime.text import MIMEText
-from googleapiclient.discovery import build
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
 from fastapi import FastAPI, HTTPException
 from fastapi_utils.tasks import repeat_every
 from threading import Thread
@@ -39,50 +35,34 @@ class PySystemd(BaseModel):
 class Script(BaseModel):
     script: str
     file_name: str
-    directory: Optional[str] = "/usr/SysAdmin/"
+    directory: Optional[str] = f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/"
     datetime: Optional[str]
     schedule: Optional[list]
 
 
 class RunScript(BaseModel):
     file_name: str
-    directory: Optional[str] = "/usr/SysAdmin/"
+    directory: Optional[str] = f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/"
 
 
 @ app.on_event('startup')
 async def startup_event():
     elevate(graphical=False)
-    pathlib.Path("/usr/SysAdmin/").mkdir(parents=True, exist_ok=True)
+    pathlib.Path(
+        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/").mkdir(parents=True, exist_ok=True)
     emails = []
-    file = open('/usr/SysAdmin/email.txt', 'r+')
+    file = open(
+        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/email.txt", 'r+')
     emails.append(file.read())
     file.close()
     url = ngrok.connect(8000).public_url
-    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
-    creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-
-    service = build('gmail', 'v1', credentials=creds)
-    for email in emails:
-        message = MIMEText(f'Hello,\nThe URL is {url}\nThank you')
-        message['to'] = email
-        message['from'] = 'sysa2427@gmail.com'
-        message['subject'] = 'Your web tunneling URL'
-        message = (service.users().messages().send(userId='sysa2427@gmail.com',
-                                                   body={'raw': base64.urlsafe_b64encode(
-                                                       message.as_string().encode()).decode()})
-                   .execute())
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        server.login('sysa2427@gmail.com', 'SysAdmin2427')
+        for email in emails:
+            message = 'Subject: The ngrok url\n\nHello,\nThe url is {}\nThank you'.format(
+                url)
+            server.sendmail('sysa2427@gmail.com', email, message)
+        server.close()
         Thread(target=lambda: alert(
             text=f"The tunneled URL has been sent to {email}", title="Email Sent", button="OK")).start()
 
@@ -91,8 +71,10 @@ async def startup_event():
 @repeat_every(seconds=60)
 async def task() -> None:
     elevate(graphical=False)
-    pathlib.Path("/usr/SysAdmin/").mkdir(parents=True, exist_ok=True)
-    file = open("/usr/SysAdmin/schedule.csv", "r+")
+    pathlib.Path(
+        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/").mkdir(parents=True, exist_ok=True)
+    file = open(
+        f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/schedule.csv", "r+")
     reader = csv.reader(file, delimiter=",")
     previous = datetime.now() - timedelta(seconds=30)
     next = datetime.now() + timedelta(seconds=30)
@@ -113,36 +95,19 @@ async def task() -> None:
                         o, e = r1.communicate()
                         if o:
                             emails = []
-                            file = open('/usr/SysAdmin/email.txt')
+                            file = open(
+                                f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/email.txt")
                             emails.append(file.read())
                             file.close()
-                            SCOPES = [
-                                'https://www.googleapis.com/auth/gmail.send']
-                            creds = None
-                            if os.path.exists('token.pickle'):
-                                with open('token.pickle', 'rb') as token:
-                                    creds = pickle.load(token)
-                            if not creds or not creds.valid:
-                                if creds and creds.expired and creds.refresh_token:
-                                    creds.refresh(Request())
-                                else:
-                                    flow = InstalledAppFlow.from_client_secrets_file(
-                                        'credentials.json', SCOPES)
-                                    creds = flow.run_local_server(port=0)
-                                with open('token.pickle', 'wb') as token:
-                                    pickle.dump(creds, token)
-
-                            service = build('gmail', 'v1', credentials=creds)
-                            for email in emails:
-                                message = MIMEText(
-                                    f'Hi there!\n\nYour script {file_name} in {directory} has been executed successfully!\n\nHere is output:- \n\n{o}')
-                                message['to'] = email
-                                message['from'] = 'sysa2427@gmail.com'
-                                message['subject'] = f'About your script {file_name}'
-                                message = (service.users().messages().send(userId='sysa2427@gmail.com',
-                                                                           body={'raw': base64.urlsafe_b64encode(
-                                                                               message.as_string().encode()).decode()})
-                                           .execute())
+                            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                                server.login('sysa2427@gmail.com',
+                                             'SysAdmin2427')
+                                for email in emails:
+                                    message = f'Subject: About your script {file_name}\n\nHi there!\n\nYour script {file_name} in {directory} has been executed '
+                                    f'successfully!\n\nHere is output:- \n\n{o}'
+                                    server.sendmail(
+                                        'sysa2427@gmail.com', email, message)
+                                server.close()
                         else:
                             pass
                     except subprocess.CalledProcessError as e:
@@ -199,7 +164,7 @@ def create_task(sc: Script):
         with open(f"{directory}/{file_name}", 'w') as file:
             file.write(script)
     if isinstance(schedule, list):
-        with open("/usr/SysAdmin/schedule.csv", "a+") as fp:
+        with open(f"/home/{os.environ.get('SUDO_USER')}/SysAdmin/schedule.csv", "a+") as fp:
             writer = csv.writer(fp, lineterminator="\n")
             for s in schedule:
                 writer.writerow([file_name, directory, s])
@@ -228,4 +193,4 @@ def run_task(rc: RunScript):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
