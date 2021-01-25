@@ -8,6 +8,6 @@ import psutil
 def psutil_controller(req):
     try:
         args = req.dargs if isinstance(req.dargs, dict) else {}
-        return getattr(psutil, req.func)(**args)
+        return getattr(psutil, req.func)(**args)._asdict()
     except Exception as e:
         return str(e)
