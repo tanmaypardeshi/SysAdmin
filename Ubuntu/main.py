@@ -22,7 +22,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from fastapi import FastAPI, HTTPException
 from fastapi_utils.tasks import repeat_every
 
-from scripts import services, psutil_script, pysystemd_script
+from scripts import psutil_script, pysystemd_script
 
 app = FastAPI()
 
@@ -164,12 +164,6 @@ async def task() -> None:
 @ app.get("/")
 def root():
     return {"Message": "Welome to SysAdmin!"}
-
-
-@ app.get("/api/services/")
-def get_services(filter: Optional[str] = None):
-    res = services.get_running_services(filter)
-    return {"data": res}
 
 
 @ app.post("/api/psutil")
