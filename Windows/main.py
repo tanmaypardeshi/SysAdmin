@@ -222,7 +222,7 @@ def bat_route(bat: BatScript):
     with open(os.path.join(directory, file_name), 'w') as batFile:
         batFile.write(script)
     if isinstance(schedule, list):
-        with open(os.path.join(directory, 'schedule.csv'), "a+") as fp:
+        with open(os.path.join('C:/Users/SysAdmin', 'schedule.csv'), "a+") as fp:
             writer = csv.writer(fp, lineterminator="\n")
             for s in schedule:
                 writer.writerow([file_name, directory, s])
