@@ -29,12 +29,12 @@ Supported Operating Systems:
     <li>In the Postman collection, replace the value of {{fast_api}} variable with this value.</li>
 </ol>
 
-####Failure cases:
+#### Failure cases:
 
 1. Did not receive "The operation completed successfully" during installation.
 2. Received a successful response but did not receive email.
 
-####Reasons:
+#### Reasons:
 <li>Invalid Email address</li>
 <li>NGROK could not download its resources and tunnel a connection.</li>
 <br>
@@ -76,12 +76,12 @@ If none of the above steps work, or you wish to set up the application yourself:
     <li>To uninstall the service you need to run <code>chmod +x uninstall.sh</code> and <code>./uninstall.sh</code></li>
 </ol>
 
-####Failure cases:
+#### Failure cases:
 
 1. Did not receive "Client ready and running as a service" during installation.
 2. Received a successful response but did not receive email.
 
-####Reasons:
+#### Reasons:
 <li>Invalid Email address</li>
 <li>NGROK could not download its resources and tunnel a connection.</li>
 <br>
